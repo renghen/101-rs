@@ -1,7 +1,17 @@
 fn main() {
     let input = [23, 82, 16, 45, 21, 94, 12, 34];
 
-    // TODO
+    let mut max = i32::MIN;
+    let mut min = i32::MAX;
+    for i in &input {
+        if *i > max {
+            max = *i;
+        }
 
-    println!("{} is largest and {} is smallest");
+        if *i < min {
+            min = *i;
+        }
+    }
+
+    println!("{} is largest and {} is smallest", max, min);
 }
