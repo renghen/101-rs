@@ -131,18 +131,18 @@ mod test {
     #[test]
     fn test_cases() {
         let x = 42;
-        assert_eq!(eval(&Const(5), x), 5);
-        assert_eq!(eval(&Var, x), 42);
-        assert_eq!(eval(&sub(Var, Const(5)), x), 37);
-        assert_eq!(eval(&sub(Var, Var), x), 0);
-        assert_eq!(eval(&add(sub(Var, Const(5)), Const(5)), x), 42);
-        assert_eq!(eval(&Summation(vec![Var, Const(1)]), x), 43);
+        assert_eq!(eval(&Const(5), x), Some(5));
+        assert_eq!(eval(&Var, x), Some(42));
+        assert_eq!(eval(&sub(Var, Const(5)), x), Some(37));
+        assert_eq!(eval(&sub(Var, Var), x), Some(0));
+        assert_eq!(eval(&add(sub(Var, Const(5)), Const(5)), x), Some(42));
+        assert_eq!(eval(&Summation(vec![Var, Const(1)]), x), Some(43));
 
-        assert_eq!(eval(&mul(Var, Const(5)), x), 210);
-        assert_eq!(eval(&mul(Const(5), Const(5)), x), 25);
-        assert_eq!(eval(&div(Var, Const(7)), x), 6);
-        assert_eq!(eval(&div(Const(5), Const(5)), x), 1);
-        assert_eq!(eval(&div(mul(Var, Const(5)), Const(5)), x), 42);
+        assert_eq!(eval(&mul(Var, Const(5)), x), Some(210));
+        assert_eq!(eval(&mul(Const(5), Const(5)), x), Some(25));
+        assert_eq!(eval(&div(Var, Const(7)), x), Some(6));
+        assert_eq!(eval(&div(Const(5), Const(5)), x), Some(1));
+        assert_eq!(eval(&div(mul(Var, Const(5)), Const(5)), x), Some(42));
     }
 }
 
