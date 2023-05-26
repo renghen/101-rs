@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// An imaginary config file
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,7 +40,11 @@ fn main() {
         Ok(c) => c,
         Err(e) => {
             // `path` was created from an UTF-8 string, so can be converted to one
-            eprintln!("Error reading file at path {}: {}", path.to_str().unwrap(), e);
+            eprintln!(
+                "Error reading file at path {}: {}",
+                path.to_str().unwrap(),
+                e
+            );
             return;
         }
     };

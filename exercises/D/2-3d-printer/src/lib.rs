@@ -3,17 +3,17 @@ use std::marker::PhantomData;
 use rand::Rng;
 
 pub struct Printer3D<S> {
-    _marker: PhantomData<S>
+    _marker: PhantomData<S>,
 }
 
 /* States */
 
 /// The 3D printer encountered an error and needs resetting
-pub enum ErrorState{}
+pub enum ErrorState {}
 /// The 3D printer is waiting for a job
-pub enum IdleState{}
+pub enum IdleState {}
 /// The 3D printer is currently printing
-pub enum PrintingState{}
+pub enum PrintingState {}
 /// The 3D printed product is ready
 pub enum ProductReadyState {}
 

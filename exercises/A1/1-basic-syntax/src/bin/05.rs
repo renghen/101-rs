@@ -5,6 +5,6 @@ fn main() {
     }
 }
 
-fn floored_half(data: i32) -> i32{
+fn floored_half(data: i32) -> i32 {
     data / 2
-} 
+}

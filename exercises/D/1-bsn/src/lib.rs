@@ -83,10 +83,20 @@ mod tests {
     #[test]
     fn test_validation() {
         let bsns = include_str!("../valid_bsns.in").lines();
-        bsns.for_each(|bsn| assert!(Bsn::validate(bsn).is_ok(), "BSN {bsn} is valid, but did not pass validation"));
+        bsns.for_each(|bsn| {
+            assert!(
+                Bsn::validate(bsn).is_ok(),
+                "BSN {bsn} is valid, but did not pass validation"
+            )
+        });
 
         let bsns = include_str!("../invalid_bsns.in").lines();
-        bsns.for_each(|bsn| assert!(Bsn::validate(bsn).is_err(), "BSN {bsn} invalid, but passed validation"));
+        bsns.for_each(|bsn| {
+            assert!(
+                Bsn::validate(bsn).is_err(),
+                "BSN {bsn} invalid, but passed validation"
+            )
+        });
     }
 
     #[test]

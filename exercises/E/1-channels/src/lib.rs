@@ -1,2 +1,2 @@
-pub mod oneshot;
 pub mod mpsc;
+pub mod oneshot;

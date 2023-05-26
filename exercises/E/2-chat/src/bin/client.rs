@@ -35,9 +35,11 @@ async fn handle_chat_input(
     mut stdin: Lines<BufReader<Stdin>>,
     mut tcp_write: OwnedWriteHalf,
 ) -> Result<()> {
-    todo!("For every line of stdin, create a Message::SimpleMessage
+    todo!(
+        "For every line of stdin, create a Message::SimpleMessage
         containing the line as content, and send it to the server,
-        along with a newline");
+        along with a newline"
+    );
     Ok(())
 }
 
