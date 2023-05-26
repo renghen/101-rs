@@ -16,9 +16,13 @@ enum Expr {
     Const(i64),
     Add(Box<Expr>, Box<Expr>),
     Sub(Box<Expr>, Box<Expr>),
+    Mul(Box<Expr>, Box<Expr>),
+    Div(Box<Expr>, Box<Expr>),
     Var,
     Summation(Vec<Expr>),
 }
+
+use std::ops::Deref;
 
 // inject these two identifiers directly into the current namespace
 use Expr::Const;
@@ -36,28 +40,56 @@ fn sub(x: Expr, y: Expr) -> Expr {
 }
 
 fn mul(x: Expr, y: Expr) -> Expr {
-    todo!()
+    Expr::Mul(Box::new(x), Box::new(y))
 }
 
 fn div(x: Expr, y: Expr) -> Expr {
-    todo!()
+    Expr::Div(Box::new(x), Box::new(y))
 }
 
 // ...
 
-fn eval(expr: &Expr, var: i64) -> i64 {
+const ZERO: Expr = Const(0);
+
+fn eval(expr: &Expr, var: i64) -> Option<i64> {
     // this should return an Option<i64>
     use Expr::*;
     match expr {
-        Const(k) => *k,
-        Var => var,
-        Add(lhs, rhs) => eval(lhs, var) + eval(rhs, var),
-        Sub(lhs, rhs) => eval(lhs, var) - eval(rhs, var),
-
+        Const(k) => Some(*k),
+        Var => Some(var),
+        Add(lhs, rhs) => {
+            let result = eval(lhs, var)? + eval(rhs, var)?;
+            Some(result)
+            // if let (Some(l), Some(r)) = (eval(lhs, var), eval(rhs, var)) {
+            //     Some(l + r)
+            // } else {
+            //     None
+            // }
+        }
+        Sub(lhs, rhs) => {
+            let result = eval(lhs, var)? - eval(rhs, var)?;
+            Some(result)
+        }
+        Mul(lhs, rhs) => Some(eval(lhs, var)? * eval(rhs, var)?),
+        Div(lhs, rhs) => {
+            if rhs.deref() == &ZERO {
+                None
+            } else {
+                Some(eval(lhs, var)? / eval(rhs, var)?)
+            }
+        }
         Summation(exprs) => {
-            let mut acc = 0;
+            let mut acc = Some(0);
             for e in exprs {
-                acc += eval(e, var);
+                if acc.is_none() {
+                    break;
+                }
+
+                if let Some(result) = eval(e, var) {
+                    acc = acc.map(|sum| sum + result);
+                } else {
+                    acc = None
+                }
             }
             acc
         }
@@ -68,7 +100,7 @@ fn main() {
     let test = |expr| {
         let value = rand::random::<i8>() as i64;
         println!(
-            "{:?} with Var = {} ==> {}",
+            "{:?} with Var = {} ==> {:?}",
             &expr,
             value,
             eval(&expr, value)
@@ -79,8 +111,17 @@ fn main() {
     test(Var);
     test(sub(Var, Const(5)));
     test(sub(Var, Var));
+    test(mul(Var, Const(5)));
+    test(mul(Var, Var));
+    test(div(Var, Const(1)));
+    test(div(Var, Var));
+    test(div(Var, ZERO));
     test(add(sub(Var, Const(5)), Const(5)));
+    test(add(Const(5), div(Const(100), Const(0))));
+    test(add(Const(5), div(Const(100), Const(1))));
+    test(add(Var, add(Const(5), div(Const(100), Const(1)))));
     test(Summation(vec![Var, Const(1)]));
+    test(Summation(vec![Var, Const(1), div(Const(1), ZERO)]));
 }
 
 #[cfg(test)]
@@ -96,6 +137,12 @@ mod test {
         assert_eq!(eval(&sub(Var, Var), x), 0);
         assert_eq!(eval(&add(sub(Var, Const(5)), Const(5)), x), 42);
         assert_eq!(eval(&Summation(vec![Var, Const(1)]), x), 43);
+
+        assert_eq!(eval(&mul(Var, Const(5)), x), 210);
+        assert_eq!(eval(&mul(Const(5), Const(5)), x), 25);
+        assert_eq!(eval(&div(Var, Const(7)), x), 6);
+        assert_eq!(eval(&div(Const(5), Const(5)), x), 1);
+        assert_eq!(eval(&div(mul(Var, Const(5)), Const(5)), x), 42);
     }
 }
 

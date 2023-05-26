@@ -27,28 +27,45 @@ enum MyError {
     IOError(io::Error),
 }
 
-fn get_username() -> String {
+fn get_username() -> Result<String, MyError> {
     print!("Username: ");
-    io::stdout().flush();
+    io::stdout().flush().map_err(MyError::IOError)?;
 
     let mut input = String::new();
-    io::stdin().lock().read_line(&mut input);
+    io::stdin()
+        .lock()
+        .read_line(&mut input)
+        .map_err(MyError::IOError)?;
     input = input.trim().to_string();
 
     for c in input.chars() {
         if !char::is_alphabetic(c) {
-            panic!("that's not a valid name, try again");
+            return Err(MyError::InvalidName);
+            // panic!("that's not a valid name, try again");
         }
     }
 
     if input.is_empty() {
-        panic!("that's not a valid name, try again");
+        return Err(MyError::InvalidName);
+        // panic!("that's not a valid name, try again");
     }
 
-    input
+    Ok(input)
 }
 
 fn main() {
-    let name = get_username();
-    println!("Hello {name}!")
+    loop {
+        let name = get_username();
+        match name {
+            Ok(username) => {
+                println!("Hello {}!", username);
+                break;
+            }
+            Err(MyError::InvalidName) => println!("that's not a valid name, try again"),
+            Err(MyError::IOError(io_error)) => {
+                println!("I/O error: {}", io_error);
+                break;
+            }
+        }
+    }
 }
