@@ -172,7 +172,7 @@ impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> 
                 }
             }
             LocalStorageVec::Heap(ref mut vec) => {
-               vec.remove(idx)
+                vec.remove(idx)
                 // let len = vec.len();
                 // if len == N {
                 //     //move to stack
@@ -181,7 +181,7 @@ impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> 
                 //         buf: [(); N].map(|_| *it.next().unwrap()),
                 //         len,
                 //     };
-                // }               
+                // }
             }
         }
     }
@@ -193,6 +193,44 @@ impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> 
                 ref mut len,
             } => *len = 0,
             LocalStorageVec::Heap(ref mut vec) => vec.clear(),
+        }
+    }
+}
+pub struct LocalStorageVecIter<T, const N: usize> {
+    vec: LocalStorageVec<T, N>,
+    counter: usize,
+}
+
+impl<T: Default + Clone, const N: usize> Iterator for LocalStorageVecIter<T, N> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let slice = match self.vec {
+            LocalStorageVec::Stack {
+                ref mut buf,
+                len: _,
+            } => std::mem::take(&mut buf.as_slice()),
+            LocalStorageVec::Heap(ref mut vec) => std::mem::take(&mut vec.as_slice()),
+        };
+
+        if self.counter >= slice.len() {
+            None
+        } else {
+            let result = slice[self.counter].clone();
+            self.counter += 1;
+            Some(result)
+        }
+    }
+}
+
+impl<T: Default + Display + Clone, const N: usize> IntoIterator for LocalStorageVec<T, N> {
+    type Item = T;
+    type IntoIter = LocalStorageVecIter<T, N>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        LocalStorageVecIter {
+            vec: self,
+            counter: 0,
         }
     }
 }
@@ -356,40 +394,40 @@ mod test {
     }
 
     // Uncomment me for part D
-    // #[test]
-    // fn it_iters() {
-    //     let vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 32]);
-    //     let mut iter = vec.into_iter();
-    //     for item in &mut iter {
-    //         assert_eq!(item, 0);
-    //     }
-    //     assert_eq!(iter.next(), None);
-    //
-    //     let vec: LocalStorageVec<_, 128> = LocalStorageVec::from(vec![0; 128]);
-    //     let mut iter = vec.into_iter();
-    //     for item in &mut iter {
-    //         assert_eq!(item, 0);
-    //     }
-    //     assert_eq!(iter.next(), None);
-    // }
+    #[test]
+    fn it_iters() {
+        let vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 32]);
+        let mut iter = vec.into_iter();
+        for item in &mut iter {
+            assert_eq!(item, 0);
+        }
+        assert_eq!(iter.next(), None);
+
+        let vec: LocalStorageVec<_, 128> = LocalStorageVec::from(vec![1; 128]);
+        let mut iter = vec.into_iter();
+        for item in &mut iter {
+            assert_eq!(item, 1);
+        }
+        assert_eq!(iter.next(), None);
+    }
 
     // Uncomment me for part E
-    // #[test]
-    // fn it_as_refs() {
-    //     let vec: LocalStorageVec<i32, 256> = LocalStorageVec::from([0; 128]);
-    //     let slice: &[i32] = vec.as_ref();
-    //     assert!(slice.len() == 128);
-    //     let vec: LocalStorageVec<i32, 32> = LocalStorageVec::from([0; 128]);
-    //     let slice: &[i32] = vec.as_ref();
-    //     assert!(slice.len() == 128);
-    //
-    //     let mut vec: LocalStorageVec<i32, 256> = LocalStorageVec::from([0; 128]);
-    //     let slice_mut: &[i32] = vec.as_mut();
-    //     assert!(slice_mut.len() == 128);
-    //     let mut vec: LocalStorageVec<i32, 32> = LocalStorageVec::from([0; 128]);
-    //     let slice_mut: &[i32] = vec.as_mut();
-    //     assert!(slice_mut.len() == 128);
-    // }
+    #[test]
+    fn it_as_refs() {
+        let vec: LocalStorageVec<i32, 256> = LocalStorageVec::from([0; 128]);
+        let slice: &[i32] = vec.as_ref();
+        assert!(slice.len() == 128);
+        let vec: LocalStorageVec<i32, 32> = LocalStorageVec::from([0; 128]);
+        let slice: &[i32] = vec.as_ref();
+        assert!(slice.len() == 128);
+    
+        let mut vec: LocalStorageVec<i32, 256> = LocalStorageVec::from([0; 128]);
+        let slice_mut: &[i32] = vec.as_mut();
+        assert!(slice_mut.len() == 128);
+        let mut vec: LocalStorageVec<i32, 32> = LocalStorageVec::from([0; 128]);
+        let slice_mut: &[i32] = vec.as_mut();
+        assert!(slice_mut.len() == 128);
+    }
 
     // Uncomment me for part F
     // #[test]
