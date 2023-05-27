@@ -62,7 +62,16 @@ impl<T, const N: usize> AsRef<[T]> for LocalStorageVec<T, N> {
     fn as_ref(&self) -> &[T] {
         match self {
             LocalStorageVec::Heap(vec) => vec.as_slice(),
-            LocalStorageVec::Stack { buf, len: _ } => buf.as_slice(),
+            LocalStorageVec::Stack { buf, len } => &buf[0..*len],
+        }
+    }
+}
+
+impl<T, const N: usize> AsMut<[T]> for LocalStorageVec<T,N>{
+    fn as_mut(&mut self) -> &mut [T] {
+        match self {
+            LocalStorageVec::Heap(vec) => vec.as_mut(),
+            LocalStorageVec::Stack { buf, len } => &mut buf[0..*len],
         }
     }
 }
@@ -420,7 +429,7 @@ mod test {
         let vec: LocalStorageVec<i32, 32> = LocalStorageVec::from([0; 128]);
         let slice: &[i32] = vec.as_ref();
         assert!(slice.len() == 128);
-    
+
         let mut vec: LocalStorageVec<i32, 256> = LocalStorageVec::from([0; 128]);
         let slice_mut: &[i32] = vec.as_mut();
         assert!(slice_mut.len() == 128);
@@ -430,14 +439,14 @@ mod test {
     }
 
     // Uncomment me for part F
-    // #[test]
-    // fn it_indexes() {
-    //     let vec: LocalStorageVec<i32, 10> = LocalStorageVec::from([0, 1, 2, 3, 4, 5]);
-    //     assert_eq!(vec[1], 1);
-    //     assert_eq!(vec[..2], [0, 1]);
-    //     assert_eq!(vec[4..], [4, 5]);
-    //     assert_eq!(vec[1..3], [1, 2]);
-    // }
+    #[test]
+    fn it_indexes() {
+        let vec: LocalStorageVec<i32, 10> = LocalStorageVec::from([0, 1, 2, 3, 4, 5]);
+        assert_eq!(vec[1], 1);
+        assert_eq!(vec[..2], [0, 1]);
+        assert_eq!(vec[4..], [4, 5]);
+        assert_eq!(vec[1..3], [1, 2]);
+    }
 
     // Uncomment me for part H
     // #[test]
