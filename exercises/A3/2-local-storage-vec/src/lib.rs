@@ -1,3 +1,5 @@
+#![allow(clippy::new_without_default)]
+
 use std::{
     fmt::Display,
     ops::{Index, Range, RangeFrom, RangeTo},
@@ -79,20 +81,27 @@ impl<T, const N: usize> AsMut<[T]> for LocalStorageVec<T, N> {
     }
 }
 
-impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> {
-    fn new() -> LocalStorageVec<T, N> {
+impl<T: Default + Display + Copy, const N: usize> LocalStorageVec<T, N> {
+    pub fn new() -> LocalStorageVec<T, N> {
         let buf = [(); N].map(|_| Default::default());
         LocalStorageVec::Stack { buf, len: 0 }
     }
 
-    fn len(self) -> usize {
+    pub fn is_empty(self) -> bool {
+        match self {
+            LocalStorageVec::Stack { buf: _, len } => len == 0,
+            LocalStorageVec::Heap(vec) => vec.is_empty(),
+        }
+    }
+
+    pub fn len(self) -> usize {
         match self {
             LocalStorageVec::Stack { buf: _, len } => len,
             LocalStorageVec::Heap(vec) => vec.len(),
         }
     }
 
-    fn push(&mut self, value: T) {
+    pub fn push(&mut self, value: T) {
         match self {
             LocalStorageVec::Stack {
                 ref mut buf,
@@ -112,7 +121,7 @@ impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> 
         }
     }
 
-    fn pop(&mut self) -> Option<T> {
+    pub fn pop(&mut self) -> Option<T> {
         match self {
             LocalStorageVec::Stack {
                 ref mut buf,
@@ -142,7 +151,7 @@ impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> 
         }
     }
 
-    fn insert(&mut self, idx: usize, element: T) {
+    pub fn insert(&mut self, idx: usize, element: T) {
         match self {
             LocalStorageVec::Stack {
                 ref mut buf,
@@ -166,7 +175,7 @@ impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> 
         }
     }
 
-    fn remove(&mut self, idx: usize) -> T {
+    pub fn remove(&mut self, idx: usize) -> T {
         match self {
             LocalStorageVec::Stack {
                 ref mut buf,
@@ -198,7 +207,7 @@ impl<T: Default + Clone + Display + Copy, const N: usize> LocalStorageVec<T, N> 
         }
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         match self {
             LocalStorageVec::Stack {
                 buf: _,
@@ -308,6 +317,62 @@ impl<T, const N: usize> Index<Range<usize>> for LocalStorageVec<T, N> {
         }
     }
 }
+
+pub struct LocalStorageVecIterator<'a, T, const N: usize> {
+    vec: &'a LocalStorageVec<T, N>,
+    counter: usize,
+}
+
+impl<'a, T, const N: usize> IntoIterator for &'a LocalStorageVec<T, N> {
+    type Item = &'a T;
+    type IntoIter = LocalStorageVecIterator<'a, T, N>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        LocalStorageVecIterator {
+            vec: self,
+            counter: 0,
+        }
+    }
+}
+
+impl<'a, T, const N: usize> Iterator for LocalStorageVecIterator<'a, T, N> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = match self.vec {
+            LocalStorageVec::Stack { buf, len } => {
+                if self.counter == *len {
+                    None
+                } else {
+                    Some(&buf[self.counter])
+                }
+            }
+            LocalStorageVec::Heap(vec) => {
+                if self.counter == vec.len() {
+                    None
+                } else {
+                    Some(&vec[self.counter])
+                }
+            }
+        };
+
+        self.counter += 1;
+        result
+    }
+}
+
+impl<T, const N: usize> LocalStorageVec<T, N> {
+    pub fn iter(&self) -> LocalStorageVecIterator<T, N> {
+        self.into_iter()
+    }
+}
+
+trait LocalStorageVecIndex {}
+
+impl LocalStorageVecIndex for usize {}
+impl LocalStorageVecIndex for RangeTo<usize> {}
+impl LocalStorageVecIndex for RangeFrom<usize> {}
+impl LocalStorageVecIndex for Range<usize> {}
 
 #[cfg(test)]
 mod test {
@@ -514,21 +579,21 @@ mod test {
     }
 
     // Uncomment me for part H
-    // #[test]
-    // fn it_borrowing_iters() {
-    //     let vec: LocalStorageVec<String, 10> = LocalStorageVec::from([
-    //         "0".to_owned(),
-    //         "1".to_owned(),
-    //         "2".to_owned(),
-    //         "3".to_owned(),
-    //         "4".to_owned(),
-    //         "5".to_owned(),
-    //     ]);
-    //     let iter = vec.iter();
-    //     for _ in iter {}
-    //     // This requires the `vec` not be consumed by the call to `iter()`
-    //     drop(vec);
-    // }
+    #[test]
+    fn it_borrowing_iters() {
+        let vec: LocalStorageVec<String, 10> = LocalStorageVec::from([
+            "0".to_owned(),
+            "1".to_owned(),
+            "2".to_owned(),
+            "3".to_owned(),
+            "4".to_owned(),
+            "5".to_owned(),
+        ]);
+        let iter = vec.iter();
+        for _ in iter {}
+        // This requires the `vec` not be consumed by the call to `iter()`
+        drop(vec);
+    }
 
     // Uncomment me for part J
     // #[test]
