@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Index, Range, RangeFrom, RangeTo},
+};
 
 /// A growable, generic list that resides on the stack if it's small,
 /// but is moved to the heap to grow larger if needed.
@@ -67,7 +70,7 @@ impl<T, const N: usize> AsRef<[T]> for LocalStorageVec<T, N> {
     }
 }
 
-impl<T, const N: usize> AsMut<[T]> for LocalStorageVec<T,N>{
+impl<T, const N: usize> AsMut<[T]> for LocalStorageVec<T, N> {
     fn as_mut(&mut self) -> &mut [T] {
         match self {
             LocalStorageVec::Heap(vec) => vec.as_mut(),
@@ -210,7 +213,7 @@ pub struct LocalStorageVecIter<T, const N: usize> {
     counter: usize,
 }
 
-impl<T: Default + Clone, const N: usize> Iterator for LocalStorageVecIter<T, N> {
+impl<T: Default + Copy, const N: usize> Iterator for LocalStorageVecIter<T, N> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -225,14 +228,14 @@ impl<T: Default + Clone, const N: usize> Iterator for LocalStorageVecIter<T, N> 
         if self.counter >= slice.len() {
             None
         } else {
-            let result = slice[self.counter].clone();
+            let result = slice[self.counter];
             self.counter += 1;
             Some(result)
         }
     }
 }
 
-impl<T: Default + Display + Clone, const N: usize> IntoIterator for LocalStorageVec<T, N> {
+impl<T: Default + Copy, const N: usize> IntoIterator for LocalStorageVec<T, N> {
     type Item = T;
     type IntoIter = LocalStorageVecIter<T, N>;
 
@@ -240,6 +243,68 @@ impl<T: Default + Display + Clone, const N: usize> IntoIterator for LocalStorage
         LocalStorageVecIter {
             vec: self,
             counter: 0,
+        }
+    }
+}
+
+impl<T, const N: usize> Index<usize> for LocalStorageVec<T, N> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                if index < *len {
+                    &buf[index]
+                } else {
+                    panic!()
+                }
+            }
+            LocalStorageVec::Heap(vec) => &vec[index],
+        }
+    }
+}
+
+impl<T, const N: usize> Index<RangeTo<usize>> for LocalStorageVec<T, N> {
+    type Output = [T];
+
+    fn index(&self, index: RangeTo<usize>) -> &Self::Output {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                if index.end < *len {
+                    &buf[index]
+                } else {
+                    panic!()
+                }
+            }
+            LocalStorageVec::Heap(vec) => &vec[index],
+        }
+    }
+}
+
+impl<T, const N: usize> Index<RangeFrom<usize>> for LocalStorageVec<T, N> {
+    type Output = [T];
+
+    fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
+        match self {
+            LocalStorageVec::Stack { buf, len } => &buf[index.start..*len],
+            LocalStorageVec::Heap(vec) => &vec[index],
+        }
+    }
+}
+
+impl<T, const N: usize> Index<Range<usize>> for LocalStorageVec<T, N> {
+    type Output = [T];
+
+    fn index(&self, index: Range<usize>) -> &Self::Output {
+        match self {
+            LocalStorageVec::Stack { buf, len } => {
+                if index.end < *len {
+                    &buf[index.start..index.end]
+                } else {
+                    panic!()
+                }
+            }
+            LocalStorageVec::Heap(vec) => &vec[index],
         }
     }
 }
