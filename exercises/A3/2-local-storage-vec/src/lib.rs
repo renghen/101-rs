@@ -2,7 +2,7 @@
 
 use std::{
     fmt::{Debug, Display},
-    ops::{Index, Range, RangeFrom, RangeTo, Deref, DerefMut},    
+    ops::{Index, Range, RangeFrom, RangeTo, Deref, DerefMut}, default,    
 };
 
 /// A growable, generic list that resides on the stack if it's small,
@@ -409,6 +409,33 @@ impl<T, const N: usize> DerefMut for LocalStorageVec<T, N> {
     }
 }
 
+impl<T, const N: usize> From<&[T]> for LocalStorageVec<T, N>
+where
+    // We require that `T` implement `Default`, in case we need to fill up our
+    // stack-based array without resorting to uninitialized memory. Once
+    // we are more proficient in working with unitialized memory, we'll be
+    // able to remove this bound.
+    T: Default + Copy,
+{
+    fn from(slice: &[T]) -> Self {
+        if N <= slice.len() {
+            // In this case, the passed array should fit on the stack.
+
+            // We crate an `Iterator` of the passed array,
+            let mut it = slice.into_iter();
+            Self::Stack {
+                buf: [(); N].map(|_| { let el = it.next().unwrap(); *el})                    
+                ,
+                // The length of the buffer on stack is the length of the original `array`: `N`
+                len: N,
+            }
+        } else {
+            // If the passed array does not fit, we'll resort to moving it to the heap instead
+            Self::Heap(Vec::from(slice))
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::LocalStorageVec;
@@ -634,12 +661,12 @@ mod test {
     #[test]
     fn it_derefs() {
         use std::ops::{Deref, DerefMut};
-        let vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 128]);
+        let vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 128].as_slice());
         // `chunks` is a method that's defined for slices `[T]`, that we can use thanks to `Deref`
         let chunks = vec.chunks(4);
         let slice: &[_] = vec.deref();
     
-        let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 128]);
+        let mut vec: LocalStorageVec<_, 128> = LocalStorageVec::from([0; 128].as_slice());
         let chunks = vec.chunks_mut(4);
         let slice: &mut [_] = vec.deref_mut();
     }
