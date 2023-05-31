@@ -1,5 +1,8 @@
 //! Adapted from https://github.com/ferrous-systems/teaching-material/blob/main/assignments/serde-lifetimes.adoc
 
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
 /// pretend that we call an API and get a JSON String back
 fn fetch_data() -> String {
     String::from(
@@ -12,20 +15,21 @@ fn fetch_data() -> String {
     )
 }
 
-#[derive(Debug)]
+#[derive(Debug,Deserialize,Serialize)]
 struct BlogPost {
     id: u32,
     title: String,
 }
 
-fn main() -> anyhow::Result<()> {
+
+fn main() -> Result<()> {
     let post: BlogPost = {
         let data = fetch_data();
-        todo!("use `serde_json` crate to parse JSON")
+        serde_json::from_str(data.as_str())?
     };
     println!("deserialized = {:?}", post);
 
-    let post_json: String = todo!("use `serde_json` to convert `post` to a string");
+    let post_json: String = serde_json::to_string(&post)?;
     println!("serialized = {:?}", post_json);
 
     Ok(())
